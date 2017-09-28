@@ -34,12 +34,15 @@ int main()
 	CImgDisplay edgeAmp_disp(imageEdgeAmp, "edge amp");
 	CImgDisplay edgeAngle_disp(imageEdgeAngle, "edge angle");
 	CImgDisplay suppressed_disp(imageSuppressed, "suppressed");
-	while (!src_disp.is_closed() || !blurred_disp.is_closed())
+	while (!src_disp.is_closed())
 	{
 		src_disp.wait();
 	}
 	
 	delete blurred;
+	delete edgeAmp;
+	delete edgeAngle;
+	delete suppressed;
 
 	return 0;
 }
