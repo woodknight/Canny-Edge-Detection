@@ -1,7 +1,7 @@
 #include "CannyEdge.h"
 #include <cmath>
 using namespace std;
-void GaussianFilter(const float *src, float *dst, const int w, const int h)
+void GaussianFilter(const unsigned char *src, float *dst, const int w, const int h)
 {
 	// Gaussian filter using separable convolution
 	// https://blogs.mathworks.com/steve/2006/10/04/separable-convolution/

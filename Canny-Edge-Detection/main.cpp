@@ -1,29 +1,29 @@
 #include "CannyEdge.h"
-#include "MatArray.h"
+#include "CImg.h"
 
-#include <opencv2/opencv.hpp>
-
-using namespace cv;
 using namespace std;
+using namespace cimg_library;
 
 int main()
 {
-	Mat img = imread("valve.tif", IMREAD_GRAYSCALE);
-	imshow("image", img);
-	// waitKey();	
-
-	int h = img.rows;
-	int w = img.cols;
+	CImg<unsigned char> img("valve.bmp");
 	
-	float *imageArray = new float[w * h];
-	CpyMatToArray(img, imageArray);
+	int h = img.height();
+	int w = img.width();
+	
+	unsigned char *imageArray = img.data();
 	
 	float *blurred = new float[w*h];
 	GaussianFilter(imageArray, blurred, w, h);
-
-	Mat blurredM = img.clone();
-	CpyArrayToMat(blurredM, blurred);
-	imshow("gaussian blur", blurredM);
-	waitKey();
+	
+	// display images
+	CImg<unsigned char> imageBlurred(blurred, w, h);
+	CImgDisplay src_disp(img, "source");
+	CImgDisplay blurred_disp(imageBlurred, "blurred");
+	while (!src_disp.is_closed() || !blurred_disp.is_closed())
+	{
+		src_disp.wait();
+	}
+	
 	return 0;
 }
