@@ -1,5 +1,8 @@
-#include "CannyEdge.h"
 #include <cmath>
+#include <iostream>
+
+#include "CannyEdge.h"
+
 using namespace std;
 void GaussianFilter(const unsigned char *src, float *dst, const int w, const int h)
 {
@@ -46,7 +49,7 @@ void GaussianFilter(const unsigned char *src, float *dst, const int w, const int
 	delete tmp;
 }
 
-void SobelEdge(const float *image, float *edgeAmp, float *edgeAngle, const int numOfRows, const int numOfCols)
+void SobelEdge(const float *image, float *edgeAmp, int *edgeAngle, const int numOfRows, const int numOfCols)
 {
 	// This function convolve the image with a Sobel filter in one dimention using
 	// separable convolution, see(https://blogs.mathworks.com/steve/2006/10/04/separable-convolution/)
@@ -99,37 +102,31 @@ void SobelEdge(const float *image, float *edgeAmp, float *edgeAngle, const int n
 
 		edgeAmp[index] = sqrt(Gx[index]* Gx[index] + Gy[index]* Gy[index]);
 
+		/* directions
+		0: 90 degree
+		1: 135 degree
+		2: 0 degree
+		3: 45 degree
+		*/
 		Gdiv = Gy[index] / Gx[index];
-		if (Gdiv < 0) {
-			if (Gdiv < -2.41421356237) 
-			{
-				edgeAngle[index] = 0;
-			}
-			else {
-				if (Gdiv < -0.414213562373) 
-				{
-					edgeAngle[index] = 1;
-				}
-				else {
-					edgeAngle[index] = 2;
-				}
-			}
-		}
-		else 
+		if (Gdiv < 0)
 		{
-			if (Gdiv > 2.41421356237) {
+			if (Gdiv < -2.41421356237)
 				edgeAngle[index] = 0;
-			}
-			else {
-				if (Gdiv > 0.414213562373) {
-					edgeAngle[index] = 3;
-				}
-				else {
-					edgeAngle[index] = 2;
-				}
-			}
+			else if (Gdiv < -0.414213562373)
+				edgeAngle[index] = 1;
+			else
+				edgeAngle[index] = 2;
 		}
-
+		else
+		{
+			if (Gdiv > 2.41421356237)
+				edgeAngle[index] = 0;
+			else if (Gdiv > 0.414213562373)
+				edgeAngle[index] = 3;
+			else
+				edgeAngle[index] = 2;
+		}
 	}
 	for (int i = 1; i < numOfRows - 1; i++) // 2 to numOfRows - 1 rows
 	{
@@ -142,34 +139,23 @@ void SobelEdge(const float *image, float *edgeAmp, float *edgeAngle, const int n
 			edgeAmp[index] = sqrt(Gx[index] * Gx[index] + Gy[index] * Gy[index]);
 
 			Gdiv = Gy[index] / Gx[index];
-			if (Gdiv < 0) {
+			if (Gdiv < 0) 
+			{
 				if (Gdiv < -2.41421356237)
-				{
 					edgeAngle[index] = 0;
-				}
-				else {
-					if (Gdiv < -0.414213562373)
-					{
-						edgeAngle[index] = 1;
-					}
-					else {
-						edgeAngle[index] = 2;
-					}
-				}
+				else if (Gdiv < -0.414213562373)
+					edgeAngle[index] = 1;
+				else
+					edgeAngle[index] = 2;					
 			}
 			else
 			{
-				if (Gdiv > 2.41421356237) {
+				if (Gdiv > 2.41421356237)
 					edgeAngle[index] = 0;
-				}
-				else {
-					if (Gdiv > 0.414213562373) {
-						edgeAngle[index] = 3;
-					}
-					else {
-						edgeAngle[index] = 2;
-					}
-				}
+				else if (Gdiv > 0.414213562373)
+					edgeAngle[index] = 3;
+				else
+					edgeAngle[index] = 2;
 			}
 		}
 	}
@@ -180,5 +166,44 @@ void SobelEdge(const float *image, float *edgeAmp, float *edgeAngle, const int n
 	delete g_2;
 }
 
+void NonMaxSuppression(const float *edgeAmp, const int *edgeAngle, float *imgSuppressed, const int h, const int w)
+{
+	int index = 0;
+	for(int y = 1; y < h -1; y++)
+		for (int x = 1; x < w - 1; x++)
+		{
+			index = y*w + x;
+			switch (edgeAngle[index])
+			{
+			case 0: // 90 degree
+				if (edgeAmp[index] > edgeAmp[index - w] && edgeAmp[index] > edgeAmp[index + w])
+					imgSuppressed[index] = edgeAmp[index];
+				else
+					imgSuppressed[index] = 0;
+				break;
+			case 1: // 135 degree
+				if (edgeAmp[index] > edgeAmp[index - w - 1] && edgeAmp[index] > edgeAmp[index + w + 1])
+					imgSuppressed[index] = edgeAmp[index];
+				else
+					imgSuppressed[index] = 0;
+				break;
+			case 2: // 0 degree
+				if (edgeAmp[index] > edgeAmp[index - 1] && edgeAmp[index] > edgeAmp[index + 1])
+					imgSuppressed[index] = edgeAmp[index];
+				else
+					imgSuppressed[index] = 0;
+				break;
+			case 3: // 45 degree
+				if (edgeAmp[index] > edgeAmp[index - w + 1] && edgeAmp[index] > edgeAmp[index + w - 1])
+					imgSuppressed[index] = edgeAmp[index];
+				else
+					imgSuppressed[index] = 0;
+				break;
+			default:
+				cout << "error, edge angle out of range!" << endl;
+				break;
+			}
+		}	
+}
 
 
