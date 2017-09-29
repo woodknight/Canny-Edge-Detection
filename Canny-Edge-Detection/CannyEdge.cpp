@@ -49,7 +49,7 @@ void GaussianFilter(const unsigned char *src, float *dst, const int w, const int
 	delete tmp;
 }
 
-void SobelEdge(const float *image, float *edgeAmp, int *edgeAngle, const int numOfRows, const int numOfCols)
+void SobelEdge(const float *image, float *G, int *edgeAngle, const int numOfRows, const int numOfCols)
 {
 	// This function convolve the image with a Sobel filter in one dimention using
 	// separable convolution, see(https://blogs.mathworks.com/steve/2006/10/04/separable-convolution/)
@@ -57,9 +57,7 @@ void SobelEdge(const float *image, float *edgeAmp, int *edgeAngle, const int num
 	// image is numOfRows*numOfCols matrix rearranged to 1D array in row-major order	
 
 	float *Gx = new float[numOfRows * numOfCols]; // gradient along x
-	float *Gy = new float[numOfRows * numOfCols]; // gradient along y
-	
-	float Gdiv = 0;
+	float *Gy = new float[numOfRows * numOfCols]; // gradient along y	
 
 	int A[3] = { 1, 0, -1 }; // filter kernel
 	int B[3] = { 1, 2, 1 };
@@ -80,7 +78,7 @@ void SobelEdge(const float *image, float *edgeAmp, int *edgeAngle, const int num
 		g_1[index] = A[0] * image[index - 1] + A[1] * image[index];
 		g_2[index] = B[0] * image[index - 1] + B[1] * image[index];
 	}
-	for (int i = 1; i < numOfRows - 1; i++) // 2 to numOfClos -1 columns
+	for (int i = 0; i < numOfRows; i++) // 2 to numOfClos -1 columns
 	{
 		for (int j = 1; j < numOfCols - 1; j++)
 		{
@@ -95,68 +93,52 @@ void SobelEdge(const float *image, float *edgeAmp, int *edgeAngle, const int num
 		index = j;
 		Gx[index] = B[1] * g_1[index] + B[2] * g_1[index + numOfCols];
 		Gy[index] = A[1] * g_2[index] + A[2] * g_2[index + numOfCols];
+		G[index] = abs(Gx[index]) + abs(Gy[index]);
 
 		index = (numOfRows - 1) * numOfCols + j;
 		Gx[index] = B[0] * g_1[index - numOfCols] + B[1] * g_1[index];
 		Gy[index] = A[0] * g_2[index - numOfCols] + A[1] * g_2[index];
+		G[index] = abs(Gx[index]) + abs(Gy[index]);
+	}
+	for (int i = 1; i < numOfRows - 1; i++) // 2 to numOfRows - 1 rows
+	{
+		for (int j = 0; j < numOfCols; j++)
+		{
+			index = i * numOfCols + j;
+			Gx[index] = B[0] * g_1[index - numOfCols] + B[1] * g_1[index] + B[2] * g_1[index + numOfCols];
+			Gy[index] = A[0] * g_2[index - numOfCols] + A[1] * g_2[index] + A[2] * g_2[index + numOfCols];
 
-		edgeAmp[index] = sqrt(Gx[index]* Gx[index] + Gy[index]* Gy[index]);
+			G[index] = abs(Gx[index]) + abs(Gy[index]);
+		}
+	}
 
+	float Gdiv = 0;
+	for (int i = 0; i < numOfCols * numOfRows; i++)
+	{
 		/* directions
 		0: 90 degree
 		1: 135 degree
 		2: 0 degree
 		3: 45 degree
 		*/
-		Gdiv = Gy[index] / Gx[index];
+		Gdiv = Gy[i] / Gx[i];
 		if (Gdiv < 0)
 		{
 			if (Gdiv < -2.41421356237)
-				edgeAngle[index] = 0;
+				edgeAngle[i] = 0;
 			else if (Gdiv < -0.414213562373)
-				edgeAngle[index] = 1;
+				edgeAngle[i] = 1;
 			else
-				edgeAngle[index] = 2;
+				edgeAngle[i] = 2;
 		}
 		else
 		{
 			if (Gdiv > 2.41421356237)
-				edgeAngle[index] = 0;
+				edgeAngle[i] = 0;
 			else if (Gdiv > 0.414213562373)
-				edgeAngle[index] = 3;
+				edgeAngle[i] = 3;
 			else
-				edgeAngle[index] = 2;
-		}
-	}
-	for (int i = 1; i < numOfRows - 1; i++) // 2 to numOfRows - 1 rows
-	{
-		for (int j = 1; j < numOfCols - 1; j++)
-		{
-			index = i * numOfCols + j;
-			Gx[index] = B[0] * g_1[index - numOfCols] + B[1] * g_1[index] + B[2] * g_1[index + numOfCols];
-			Gy[index] = A[0] * g_2[index - numOfCols] + A[1] * g_2[index] + A[2] * g_2[index + numOfCols];
-
-			edgeAmp[index] = sqrt(Gx[index] * Gx[index] + Gy[index] * Gy[index]);
-
-			Gdiv = Gy[index] / Gx[index];
-			if (Gdiv < 0) 
-			{
-				if (Gdiv < -2.41421356237)
-					edgeAngle[index] = 0;
-				else if (Gdiv < -0.414213562373)
-					edgeAngle[index] = 1;
-				else
-					edgeAngle[index] = 2;					
-			}
-			else
-			{
-				if (Gdiv > 2.41421356237)
-					edgeAngle[index] = 0;
-				else if (Gdiv > 0.414213562373)
-					edgeAngle[index] = 3;
-				else
-					edgeAngle[index] = 2;
-			}
+				edgeAngle[i] = 2;
 		}
 	}
 
@@ -203,7 +185,22 @@ void NonMaxSuppression(const float *edgeAmp, const int *edgeAngle, float *imgSup
 				cout << "error, edge angle out of range!" << endl;
 				break;
 			}
-		}	
+
+			if (imgSuppressed[index] > 255)
+				imgSuppressed[index] = 255;
+		}
+	// set boundaries to zero
+	for (int i = 0; i < w; i++)
+	{
+		imgSuppressed[i] = 0;
+		imgSuppressed[(h - 1)*w + i] = 0;
+	}
+	for (int i = 1; i < h - 1; i++)
+	{
+		imgSuppressed[i*w] = 0;
+		imgSuppressed[i*w - 1] = 0;
+	}
+
 }
 
 

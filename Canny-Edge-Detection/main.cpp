@@ -15,7 +15,7 @@ int main()
 	
 	float *blurred = new float[w*h];
 	GaussianFilter(imageArray, blurred, w, h);
-	
+		
 	float *edgeAmp = new float[w*h];
 	int *edgeAngle = new int[w*h];
 	SobelEdge(blurred, edgeAmp, edgeAngle, h, w);
@@ -26,13 +26,13 @@ int main()
 	// display images
 	CImg<unsigned char> imageBlurred(blurred, w, h);
 	CImg<unsigned char> imageEdgeAmp(edgeAmp, w, h);
-	CImg<unsigned char> imageEdgeAngle(edgeAngle, w, h);
 	CImg<unsigned char> imageSuppressed(suppressed, w, h);
+
+	// imageEdgeAmp.save("edge.bmp");
 
 	CImgDisplay src_disp(img, "source");
 	CImgDisplay blurred_disp(imageBlurred, "blurred");
 	CImgDisplay edgeAmp_disp(imageEdgeAmp, "edge amp");
-	CImgDisplay edgeAngle_disp(imageEdgeAngle, "edge angle");
 	CImgDisplay suppressed_disp(imageSuppressed, "suppressed");
 	while (!src_disp.is_closed())
 	{
