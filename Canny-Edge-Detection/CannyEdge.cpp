@@ -203,4 +203,168 @@ void NonMaxSuppression(const float *edgeAmp, const int *edgeAngle, float *imgSup
 
 }
 
+void histogram(const float *image, int *hist, const int numOfRows, const int numOfCols)
+{
+	for (int i = 0; i < 256; i++)
+		hist[i] = 0;
+
+	for (int i = 0; i < numOfRows*numOfCols; i++)
+		hist[(unsigned char)(image[i])]++;
+}
+
+unsigned char otsu(const int *hist)
+{
+	// find a threshold level that maximizes the between-class variance
+	unsigned char level = 0;
+	
+	double total = 0; // total number of pixels
+	for (int i = 0; i < 256; i++) 
+		total += hist[i];
+
+	double sum1 = 0;
+	double sumB = 0;
+	double wB = 0;
+	double wF = 0;
+	double mF = 0;
+	double maximum = 0;
+	double between = 0;
+		
+	for (int i = 0; i < 256; i++)
+		sum1 += i*hist[i];
+
+	for (int i = 0; i < 256; i++)
+	{
+		wB += hist[i];
+		wF = total - wB;
+		if (wB == 0 || wF == 0)
+			continue;
+		sumB += i*hist[i];
+		mF = (sum1 - sumB) / wF;
+		between = wB * wF * ((sumB / wB) - mF) * ((sumB / wB) - mF);
+		if (between >= maximum)
+		{
+			level = (unsigned char)i;
+			maximum = between;
+		}
+	}
+
+	// cout << "otsu level: " << (int)level << endl;
+	return level;
+}
+
+unsigned char percentile(const int *hist, const double p)
+{
+	// find a threshold level that p percent of pixels are not considered edge
+	unsigned char level = 0;
+
+	double sum = 0; // total number of pixels
+	for (int i = 0; i < 255; i++)
+		sum += hist[i];
+
+	double sumB = 0;
+	for (int i = 0; i < 255; i++)
+	{
+		sumB += hist[i];
+		if (sumB > p * sum)
+		{
+			level = (unsigned char)i;
+			return level;
+		}
+	}
+
+	cout << "error percentile" << endl;
+}
+
+void threshold(const float *image, bool *binaryImage, const int numOfRows, const int numOfCols)
+{
+	int hist[256];
+	histogram(image, hist, numOfRows, numOfCols);
+
+	// high threshold
+	unsigned char high; 
+	high = otsu(hist);
+	// high = percentile(hist, 0.7);
+	
+	//low threshold
+	unsigned char low = high * 0.4; 
+	
+	bool *strong = new bool[numOfRows*numOfCols];
+	bool *weak = new bool[numOfRows*numOfCols];
+
+	for (int i = 0; i < numOfRows*numOfCols; i++)
+	{
+		if (image[i] > high)
+		{
+			strong[i] = true;
+			weak[i] = false;
+		}
+		else if (image[i] > low)
+		{
+			weak[i] = true;
+			strong[i] = false;
+		}
+		else
+		{
+			strong[i] = false;
+			weak[i] = false;
+		}
+		
+		binaryImage[i] = false;
+	}
+
+	int index = 0;
+	for(int i = 1; i < numOfRows - 1; i++)
+		for (int j = 1; j < numOfCols - 1; j++)
+		{
+			index = i*numOfCols + j;
+			if (strong[index])
+				binaryImage[index] = true;
+			else if (weak[index])
+			{
+				// check 8-connected neighborhood pixels
+				if (strong[index + 1])
+				{
+					binaryImage[index] = true;
+					continue;
+				}
+				if (strong[index + numOfCols + 1])
+				{
+					binaryImage[index] = true;
+					continue;
+				}
+				if (strong[index + numOfCols])
+				{
+					binaryImage[index] = true;
+					continue;
+				}
+				if (strong[index + numOfCols - 1])
+				{
+					binaryImage[index] = true;
+					continue;
+				}
+				if (strong[index - 1])
+				{
+					binaryImage[index] = true;
+					continue;
+				}
+				if (strong[index - numOfCols - 1])
+				{
+					binaryImage[index] = true;
+					continue;
+				}
+				if (strong[index - numOfCols])
+				{
+					binaryImage[index] = true;
+					continue;
+				}
+				if (strong[index - numOfCols + 1])
+				{
+					binaryImage[index] = true;
+					continue;
+				}
+			}
+		}
+
+}
+
 
