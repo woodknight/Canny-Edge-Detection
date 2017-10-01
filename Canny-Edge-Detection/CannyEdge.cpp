@@ -46,7 +46,7 @@ void GaussianFilter(const unsigned char *src, float *dst, const int w, const int
 			}
 			dst[i*w + j] = value;
 		}
-	delete tmp;
+	delete []tmp;
 }
 
 void SobelEdge(const float *image, float *G, int *edgeAngle, const int numOfRows, const int numOfCols)
@@ -142,10 +142,10 @@ void SobelEdge(const float *image, float *G, int *edgeAngle, const int numOfRows
 		}
 	}
 
-	delete Gx;
-	delete Gy;
-	delete g_1;
-	delete g_2;
+	delete []Gx;
+	delete []Gy;
+	delete []g_1;
+	delete []g_2;
 }
 
 void NonMaxSuppression(const float *edgeAmp, const int *edgeAngle, float *imgSuppressed, const int h, const int w)
@@ -271,8 +271,7 @@ unsigned char percentile(const int *hist, const double p)
 			return level;
 		}
 	}
-
-	cout << "error percentile" << endl;
+	return level;	
 }
 
 void threshold(const float *image, bool *binaryImage, const int numOfRows, const int numOfCols)
@@ -286,7 +285,7 @@ void threshold(const float *image, bool *binaryImage, const int numOfRows, const
 	// high = percentile(hist, 0.7);
 	
 	//low threshold
-	unsigned char low = high * 0.4; 
+	unsigned char low = (unsigned char)(high * 0.4); 
 	
 	bool *strong = new bool[numOfRows*numOfCols];
 	bool *weak = new bool[numOfRows*numOfCols];

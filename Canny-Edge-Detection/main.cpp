@@ -45,10 +45,10 @@ int main()
 		src_disp.wait();
 	}
 		
-	delete blurred;
-	delete edgeAmp;
-	delete edgeAngle;
-	delete suppressed;
-	delete binaryImage;
+	delete []blurred;
+	delete []edgeAmp;
+	delete []edgeAngle;
+	delete []suppressed;
+	delete []binaryImage;
 	return 0;
 }
